@@ -161,11 +161,33 @@ def show_help():
     [--help] 显示帮助信息
     """.format(ver=config.VERSION))
 
+def batch(fileUrl, words):
+    with open(fileUrl, "w") as file:
+        for word in words:
+            # keyword = unicode(word, encoding=sys.getfilesystemencoding())
+            spider = YoudaoSpider(word)
+            try:
+                result = spider.get_result(False)
+            except requests.HTTPError, e:
+                print colored(u'网络错误: %s' % e.message, 'red')
+                sys.exit()
+            basic = '';
+            translation = '';
+            if 'basic' in result:
+                if 'us-phonetic' in result['basic']:
+                    basic += u'美音:[' + result['basic']['us-phonetic'] + ']'
+                if 'uk-phonetic' in result['basic']:
+                    basic += u'英音:[' + result['basic']['uk-phonetic'] + ']'
+                translation = u' '.join(result['basic']['explains'])
+            row = word + '\t' + basic + '\t' + translation + '\n'
+            file.write(row.encode('utf8'))
+    with open(fileUrl, 'r') as file:
+        print(file.read())
 
 def main():
     config.prepare()
     try:
-        options, args = getopt.getopt(sys.argv[1:], 'anld:cvs:y', ['help'])
+        options, args = getopt.getopt(sys.argv[1:], 'anld:cvs:yb:', ['help'])
     except getopt.GetoptError:
         options = [('--help', '')]
     if ('--help', '') in options:
@@ -199,6 +221,9 @@ def main():
         elif opt[0] == '-y':
             use_dict = False
             use_db = False
+        elif opt[0] == '-b':
+            batch(opt[1], args)
+            sys.exit()
 
     keyword = unicode(' '.join(args), encoding=sys.getfilesystemencoding())
 
